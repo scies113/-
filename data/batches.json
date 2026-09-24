@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "preserve_id": 1,
+    "production_date": "2026-09-10",
+    "quantity": 8,
+    "is_consumed": false
+  },
+  {
+    "id": 2,
+    "preserve_id": 2,
+    "production_date": "2026-09-12",
+    "quantity": 12,
+    "is_consumed": false
+  },
+  {
+    "id": 3,
+    "preserve_id": 3,
+    "production_date": "2026-08-25",
+    "quantity": 0,
+    "is_consumed": true
+  }
+]
