@@ -3,7 +3,7 @@
     "id": 1,
     "preserve_id": 1,
     "production_date": "2026-09-10",
-    "quantity": 8,
+    "quantity": 6,
     "is_consumed": false
   },
   {
@@ -19,5 +19,12 @@
     "production_date": "2026-08-25",
     "quantity": 0,
     "is_consumed": true
+  },
+  {
+    "id": 4,
+    "preserve_id": 4,
+    "production_date": "2006-01-23",
+    "quantity": 5,
+    "is_consumed": false
   }
 ]

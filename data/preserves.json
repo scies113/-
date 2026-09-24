@@ -16,5 +16,17 @@
     "name": "Клубничное варенье",
     "product_id": 3,
     "recipe_notes": "Пятиминутка с целыми ягодами"
+  },
+  {
+    "id": 4,
+    "name": "Огручики-чигурчики",
+    "product_id": 1,
+    "recipe_notes": "Вкусные огруцы"
+  },
+  {
+    "id": 5,
+    "name": "огог",
+    "product_id": 1,
+    "recipe_notes": ""
   }
 ]
