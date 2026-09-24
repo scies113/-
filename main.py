@@ -1,8 +1,16 @@
-"""Система учета домашних заготовок (Прототип ПР1).
+"""Система учета домашних заготовок (Модульная структура ПР2).
 
-Модуль реализует базовый консольный функционал учета партий заготовок,
-расчета остатков банок и контроля расхода домашней консервации.
+Точка входа, координация работы с хранилищем и модулем ввода.
 """
+
+from pathlib import Path
+
+from storage import load_json_data, save_json_data
+from utils import input_int
+
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "data"
+BATCHES_FILE = str(DATA_DIR / "batches.json")
 
 
 def get_batch_status(quantity: int, is_consumed: bool) -> str:
@@ -51,45 +59,21 @@ def show_batches(batches: list[dict]) -> None:
     for batch in batches:
         status = get_batch_status(batch["quantity"], batch["is_consumed"])
         print(
-            f"Партия #{batch['id']}: '{batch['preserve_name']}' "
-            f"от {batch['production_date']} | "
+            f"Партия #{batch['id']} от {batch['production_date']} | "
             f"Количество: {batch['quantity']} шт. | Статус: {status}"
         )
 
 
 def main() -> None:
-    """Точка входа функционального прототипа ПР1."""
-    products = [
-        {"id": 1, "name": "Огурцы", "category": "овощи"},
-        {"id": 2, "name": "Клубника", "category": "ягоды"},
-    ]
-    preserves = [
-        {"id": 1, "name": "Маринованные огурцы", "product_name": "Огурцы"},
-        {"id": 2, "name": "Клубничное варенье", "product_name": "Клубника"},
-    ]
-    batches = [
-        {
-            "id": 1,
-            "preserve_name": "Маринованные огурцы",
-            "production_date": "2026-09-10",
-            "quantity": 10,
-            "is_consumed": False,
-        },
-        {
-            "id": 2,
-            "preserve_name": "Клубничное варенье",
-            "production_date": "2026-09-12",
-            "quantity": 5,
-            "is_consumed": False,
-        },
-    ]
-
-    print("=== Система учета домашних заготовок (ПР1) ===")
-    print(f"Загружено продуктов: {len(products)}, рецептов: {len(preserves)}")
+    """Точка входа модульного приложения ПР2."""
+    batches = load_json_data(BATCHES_FILE)
+    print("=== Система учета домашних заготовок (ПР2) ===")
+    print(f"Загружено партий из хранилища: {len(batches)}")
 
     while True:
-        print("\n1. Показать список партий")
+        print("\n1. Показать список партий в погребе")
         print("2. Списать банки из партии")
+        print("9. Сохранить изменения")
         print("0. Выход")
         choice = input("Выберите действие: ").strip()
 
@@ -97,20 +81,22 @@ def main() -> None:
             show_batches(batches)
         elif choice == "2":
             show_batches(batches)
-            batch_id_str = input("Введите номер партии: ").strip()
-            amount_str = input("Введите количество для списания: ").strip()
-            if not batch_id_str.isdigit() or not amount_str.isdigit():
-                print("Ошибка: необходимо вводить целые числа.")
-                continue
-            batch_id = int(batch_id_str)
-            amount = int(amount_str)
+            batch_id = input_int("Введите номер партии: ", min_val=1)
+            amount = input_int(
+                "Введите количество для списания: ",
+                min_val=1,
+            )
             target = next((b for b in batches if b["id"] == batch_id), None)
             if target:
                 consume_batch(target, amount)
             else:
                 print("Партия с указанным номером не найдена.")
+        elif choice == "9":
+            save_json_data(BATCHES_FILE, batches)
+            print("Данные успешно сохранены.")
         elif choice == "0":
-            print("Завершение работы программы.")
+            save_json_data(BATCHES_FILE, batches)
+            print("Изменения сохранены. Завершение работы программы.")
             break
         else:
             print("Неверный пункт меню. Повторите ввод.")
