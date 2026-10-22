@@ -15,7 +15,7 @@
   <div class="col-lg-8">
     <div class="card shadow-sm border-0 preserve-card">
       <div class="card-header bg-success text-white py-3 d-flex justify-content-between align-items-center">
-        <h2 class="h4 mb-0">Партия #{{ batch.id }}: {{ batch.preserve_name|default:batch.preserve.name|default:"Заготовка" }}</h2>
+        <h2 class="h4 mb-0">Партия #{{ batch.id }}: {{ batch.preserve_name|default:"Заготовка" }}</h2>
         {% include 'includes/batch_status.html' with batch=batch %}
       </div>
       <div class="card-body p-4">
@@ -25,9 +25,9 @@
 
           <dt class="col-sm-4 text-muted">Вид заготовки:</dt>
           <dd class="col-sm-8">
-            <span class="fw-bold text-success">{{ batch.preserve_name|default:batch.preserve.name|default:"Заготовка" }}</span>
-            {% if batch.preserve_id or batch.preserve.id %}
-              <a href="{% url 'preserves:detail' batch.preserve_id|default:batch.preserve.id %}" class="small ms-2 text-decoration-none">
+            <span class="fw-bold text-success">{{ batch.preserve_name|default:"Заготовка" }}</span>
+            {% if batch.preserve_id %}
+              <a href="{% url 'preserves:detail' batch.preserve_id %}" class="small ms-2 text-decoration-none">
                 (перейти к рецепту)
               </a>
             {% endif %}
@@ -35,7 +35,7 @@
 
           <dt class="col-sm-4 text-muted">Исходное сырье:</dt>
           <dd class="col-sm-8">
-            {{ batch.product_name|default:batch.preserve.product.name|default:"Нет данных" }}
+            {{ batch.product_name|default:"Нет данных" }}
           </dd>
 
           <dt class="col-sm-4 text-muted">Дата производства:</dt>

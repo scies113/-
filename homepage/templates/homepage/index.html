@@ -9,6 +9,13 @@
     <p class="col-md-9 fs-5 text-secondary">
       Удобный веб-сервис для ведения каталога рецептур, сырья и контроля запасов банок в погребе или кладовой.
     </p>
+    {% if total_jars is not None %}
+      <div class="d-flex flex-wrap gap-3 my-3">
+        <span class="badge bg-success fs-6 py-2 px-3">Банок в погребе: {{ total_jars }} шт.</span>
+        <span class="badge bg-secondary fs-6 py-2 px-3">Рецептов: {{ preserves_count }}</span>
+        <span class="badge bg-info text-dark fs-6 py-2 px-3">Видов сырья: {{ products_count }}</span>
+      </div>
+    {% endif %}
     <div class="d-flex flex-wrap gap-2 mt-3">
       <a class="btn btn-success btn-lg px-4" href="{% url 'batches:list' %}">Погреб (партии)</a>
       <a class="btn btn-outline-secondary btn-lg px-4" href="{% url 'preserves:list' %}">Каталог заготовок</a>
