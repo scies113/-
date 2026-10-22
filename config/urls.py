@@ -2,17 +2,22 @@
 
 from typing import Any
 
-from django.http import HttpRequest, HttpResponseNotFound
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import render
 from django.urls import include, path
 
 
 def custom_page_not_found(
     request: HttpRequest,
     exception: Any = None,
-) -> HttpResponseNotFound:
+) -> HttpResponse:
     """Глобальный обработчик ошибки 404."""
-    content = "<h1>404 — Страница не найдена</h1>"
-    return HttpResponseNotFound(content)
+    return render(
+        request,
+        '404.html',
+        {'message': 'Запрашиваемая страница не существует.'},
+        status=404,
+    )
 
 
 handler404 = 'config.urls.custom_page_not_found'

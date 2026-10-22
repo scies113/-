@@ -1,0 +1,87 @@
+/* Собственные стили системы учета домашних заготовок */
+
+:root {
+    --primary-color: #2c5e3b;
+    --primary-hover: #1f432a;
+    --accent-color: #c95d3b;
+    --bg-light: #f8f9fa;
+    --card-border: #e2e8f0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #fafbfc;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1 0 auto;
+}
+
+.brand-logo {
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.navbar-custom {
+    background-color: var(--primary-color);
+}
+
+.navbar-custom .navbar-brand,
+.navbar-custom .nav-link {
+    color: #ffffff !important;
+}
+
+.navbar-custom .nav-link:hover {
+    color: #ffd166 !important;
+}
+
+/* Оформление карточек заготовок */
+.preserve-card {
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background: #ffffff;
+    height: 100%;
+}
+
+.preserve-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+}
+
+.preserve-card .card-header {
+    background-color: rgba(44, 94, 59, 0.05);
+    border-bottom: 1px solid var(--card-border);
+    font-weight: 600;
+}
+
+/* Бейджи статуса */
+.badge-status-active {
+    background-color: #198754;
+    color: #ffffff;
+    font-weight: 500;
+    padding: 0.4em 0.7em;
+    border-radius: 20px;
+}
+
+.badge-status-consumed {
+    background-color: #6c757d;
+    color: #ffffff;
+    font-weight: 500;
+    padding: 0.4em 0.7em;
+    border-radius: 20px;
+}
+
+/* Оформление футера */
+footer {
+    background-color: #212529;
+    color: #adb5bd;
+    padding: 1.5rem 0;
+    margin-top: auto;
+}

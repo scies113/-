@@ -1,0 +1,34 @@
+{% load static %}
+<nav class="navbar navbar-expand-lg navbar-dark navbar-custom shadow-sm mb-4">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center" href="{% url 'homepage:index' %}">
+      <img src="{% static 'img/logo.png' %}" alt="Логотип" class="brand-logo">
+      <span>Домашние заготовки</span>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Переключить навигацию">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'homepage:index' %}">Главная</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'preserves:list' %}">Заготовки</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'preserves:products' %}">Сырье</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'batches:list' %}">Партии</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'batches:search' %}">Поиск</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'batches:statistics' %}">Статистика</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>

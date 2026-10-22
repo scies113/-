@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}Статистика запасов — Система учета домашних заготовок{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <h1 class="h2">Статистика запасов в погребе</h1>
+  <p class="text-muted">Сводная аналитическая информация о запасах и партиях домашней консервации.</p>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm border-0 border-start border-success border-4 p-3">
+      <div class="card-body">
+        <h6 class="text-muted text-uppercase mb-2">Всего банок в наличии</h6>
+        <h2 class="display-6 fw-bold text-success mb-0">{{ total_jars|default:0 }} шт.</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm border-0 border-start border-primary border-4 p-3">
+      <div class="card-body">
+        <h6 class="text-muted text-uppercase mb-2">Активных партий</h6>
+        <h2 class="display-6 fw-bold text-primary mb-0">{{ active_batches_count|default:0 }}</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm border-0 border-start border-secondary border-4 p-3">
+      <div class="card-body">
+        <h6 class="text-muted text-uppercase mb-2">Всего партий (история)</h6>
+        <h2 class="display-6 fw-bold text-secondary mb-0">{{ total_batches_count|default:0 }}</h2>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-light py-3">
+    <h5 class="mb-0">Запасы банок по видам заготовок</h5>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th scope="col">Заготовка</th>
+          <th scope="col" class="text-center">Количество партий</th>
+          <th scope="col" class="text-end">Банок в наличии</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in preserve_stats %}
+          <tr>
+            <td class="fw-semibold text-success">
+              {{ item.preserve_name }}
+            </td>
+            <td class="text-center">
+              <span class="badge bg-light text-dark border">{{ item.batches_count }}</span>
+            </td>
+            <td class="text-end fw-bold">
+              {{ item.total_quantity }} шт.
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="3" class="text-center text-muted py-4">
+              Статистика по заготовкам отсутствует.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

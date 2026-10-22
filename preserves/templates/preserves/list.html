@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Каталог заготовок — Система учета домашних заготовок{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h2 mb-0">Каталог видов заготовок</h1>
+  <span class="badge bg-success fs-6">Всего: {{ preserves|length }}</span>
+</div>
+
+<div class="row g-4">
+  {% for preserve in preserves %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card preserve-card h-100 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span class="text-muted small">#{{ preserve.id }}</span>
+          <span class="badge bg-light text-dark border">{{ preserve.product_name|default:preserve.product.name|default:"Сырье не указано" }}</span>
+        </div>
+        <div class="card-body">
+          <h5 class="card-title text-success">{{ preserve.name }}</h5>
+          <p class="card-text text-muted small">
+            {{ preserve.recipe_notes|default:"Нет данных"|truncatewords:15 }}
+          </p>
+        </div>
+        <div class="card-footer bg-transparent border-top-0 pb-3">
+          <a href="{% url 'preserves:detail' preserve.id %}" class="btn btn-sm btn-outline-success w-100">
+            Подробнее о заготовке
+          </a>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="col-12">
+      <div class="alert alert-info" role="alert">
+        Список заготовок пуст. Добавьте первый рецепт!
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

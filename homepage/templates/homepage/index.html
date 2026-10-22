@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Главная — Система учета домашних заготовок{% endblock %}
+
+{% block content %}
+<div class="p-5 mb-4 bg-light rounded-3 shadow-sm border">
+  <div class="container-fluid py-3">
+    <h1 class="display-5 fw-bold text-success">Система учета домашних заготовок</h1>
+    <p class="col-md-9 fs-5 text-secondary">
+      Удобный веб-сервис для ведения каталога рецептур, сырья и контроля запасов банок в погребе или кладовой.
+    </p>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      <a class="btn btn-success btn-lg px-4" href="{% url 'batches:list' %}">Погреб (партии)</a>
+      <a class="btn btn-outline-secondary btn-lg px-4" href="{% url 'preserves:list' %}">Каталог заготовок</a>
+      <a class="btn btn-outline-secondary btn-lg px-4" href="{% url 'batches:statistics' %}">Статистика</a>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm border-0 preserve-card p-3">
+      <div class="card-body">
+        <h5 class="card-title text-success">Каталог заготовок</h5>
+        <p class="card-text text-muted">
+          Справочник всех рецептов консервации, солений и варенья с привязкой к сырью.
+        </p>
+        <a href="{% url 'preserves:list' %}" class="btn btn-sm btn-outline-success">Перейти к каталогу &rarr;</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm border-0 preserve-card p-3">
+      <div class="card-body">
+        <h5 class="card-title text-success">Справочник сырья</h5>
+        <p class="card-text text-muted">
+          Базовые продукты (овощи, фрукты, ягоды, грибы), используемые для приготовления.
+        </p>
+        <a href="{% url 'preserves:products' %}" class="btn btn-sm btn-outline-success">Открыть справочник &rarr;</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm border-0 preserve-card p-3">
+      <div class="card-body">
+        <h5 class="card-title text-success">Поиск и аналитика</h5>
+        <p class="card-text text-muted">
+          Быстрая фильтрация банок по дате, статусу и просмотр суммарных запасов.
+        </p>
+        <a href="{% url 'batches:search' %}" class="btn btn-sm btn-outline-success">Найти запасы &rarr;</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
