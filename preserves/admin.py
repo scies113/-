@@ -1,8 +1,10 @@
 """Администрирование продуктов и заготовок."""
 
 from django.contrib import admin
+from django.core.exceptions import ValidationError
+from django.forms.models import BaseInlineFormSet
 
-from batches.models import Batch
+from batches.models import ACTIVE_BATCH_CONFLICT, Batch
 from config.admin import PreserveProjectAdmin
 
 from .models import Preserve, Product
@@ -15,8 +17,27 @@ class PreserveInline(admin.TabularInline):
     show_change_link = True
 
 
+class BatchInlineFormSet(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        active_dates = set()
+        for form in self.forms:
+            values = form.cleaned_data
+            day = values.get("production_date")
+            if values.get("DELETE") or (
+                values.get("status") != Batch.Status.ACTIVE
+            ):
+                continue
+            if day in active_dates:
+                raise ValidationError(ACTIVE_BATCH_CONFLICT)
+            active_dates.add(day)
+
+
 class BatchInline(admin.TabularInline):
     model = Batch
+    formset = BatchInlineFormSet
     fields = ("production_date", "quantity", "status")
     ordering = ("-production_date", "-pk")
     extra = 0

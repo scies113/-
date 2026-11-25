@@ -1,0 +1,13 @@
+{% if batch.status == 'active' and perms.batches.change_batch %}
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-sm btn-outline-primary" href="{% url 'batches:update' batch.pk %}">Редактировать</a>
+    <details>
+      <summary class="btn btn-sm btn-outline-danger">Списать</summary>
+      <form action="{% url 'batches:discard' batch.pk %}" method="post" class="mt-2">
+        {% csrf_token %}
+        <p class="small mb-2">Партия останется в истории, её банки будут исключены из остатков.</p>
+        <button type="submit" class="btn btn-sm btn-danger">Подтвердить списание</button>
+      </form>
+    </details>
+  </div>
+{% endif %}

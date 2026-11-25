@@ -58,6 +58,9 @@
             {% include 'includes/batch_status.html' with batch=batch %}
           </dd>
         </dl>
+        {% if batch.status == 'active' and perms.batches.change_batch %}
+          <div class="mt-3">{% include 'includes/batch_actions.html' %}</div>
+        {% endif %}
       </div>
       <div class="card-footer bg-light d-flex justify-content-between py-3">
         <a href="{% url 'batches:list' %}" class="btn btn-outline-secondary">

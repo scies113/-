@@ -1,6 +1,6 @@
 """Проверки админки, остатков и ORM-выборок погреба."""
 
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -64,7 +64,8 @@ class StockWorkflowTests(TestCase):
     def test_search_combines_filters_and_keeps_them_on_second_page(self):
         for quantity in range(1, 7):
             Batch.objects.create(
-                preserve=self.preserve, production_date=self.day,
+                preserve=self.preserve,
+                production_date=self.day + timedelta(days=quantity),
                 quantity=quantity,
             )
         Batch.objects.create(
@@ -73,7 +74,7 @@ class StockWorkflowTests(TestCase):
         )
         url = reverse("batches:search")
         params = {
-            "date": self.day.isoformat(), "q": "БРУСНИКА",
+            "q": "БРУСНИКА",
             "preserve": self.preserve.pk, "product": self.product.pk,
             "status": Batch.Status.ACTIVE, "sort": "quantity",
         }
@@ -91,6 +92,8 @@ class StockWorkflowTests(TestCase):
         response = self.client.get(url, {**params, "page": 2})
         second = response.context["page_obj"]
         self.assertEqual([row["available_quantity"] for row in second], [2, 1])
+        dated = self.client.get(url, {**params, "date": self.day.isoformat()})
+        self.assertEqual(dated.context["page_obj"].paginator.count, 1)
 
     def test_batch_detail_loads_recipe_and_product_in_one_query(self):
         with self.assertNumQueries(1):

@@ -6,6 +6,11 @@ from django.db.models import Case, F, Q, Value, When
 from preserves.search import search_names
 
 
+ACTIVE_BATCH_CONFLICT = (
+    "У этой заготовки уже есть активная партия на эту дату."
+)
+
+
 class BatchStatus(models.TextChoices):
     ACTIVE = "active", "В наличии"
     CONSUMED = "consumed", "Израсходована"
@@ -64,7 +69,22 @@ class Batch(models.Model):
                 condition=Q(status__in=BatchStatus.values),
                 name="batch_status_valid",
             ),
+            models.UniqueConstraint(
+                fields=("preserve", "production_date"),
+                condition=Q(status=BatchStatus.ACTIVE),
+                name="unique_active_batch_per_recipe_date",
+                violation_error_message=ACTIVE_BATCH_CONFLICT,
+            ),
         ]
+
+    def discard(self):
+        """Списывает активную партию и сохраняет её в истории."""
+        updated = type(self).objects.active().filter(pk=self.pk).update(
+            status=self.Status.DISCARDED
+        )
+        if updated:
+            self.status = self.Status.DISCARDED
+        return bool(updated)
 
     def __str__(self):
         if self.pk is None:

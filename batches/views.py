@@ -1,14 +1,18 @@
 """Представления приложения batches."""
 
+from django.contrib.auth.decorators import login_required, permission_required
 from django.core.paginator import Paginator
+from django.db import IntegrityError, transaction
 from django.db.models import Count, F, Q, Sum
-from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render
+from django.http import Http404, HttpRequest, HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.views.decorators.http import require_http_methods, require_POST
 
 from preserves.models import Preserve
 
-from .forms import BatchFilterForm, SORT_OPTIONS
-from .models import Batch
+from .forms import BatchFilterForm, BatchForm, SORT_OPTIONS
+from .models import ACTIVE_BATCH_CONFLICT, Batch
 
 
 PAGE_SIZE = 5
@@ -72,6 +76,66 @@ def batch_search(request: HttpRequest) -> HttpResponse:
         "page_obj": page_obj,
         "form": form,
     })
+
+
+def _batch_form(request, batch=None):
+    form = BatchForm(
+        request.POST if request.method == "POST" else None, instance=batch
+    )
+    if request.method == "POST" and form.is_valid():
+        try:
+            with transaction.atomic():
+                if batch is None:
+                    batch = form.save()
+                else:
+                    pending = form.save(commit=False)
+                    updated = Batch.objects.active().filter(pk=batch.pk)
+                    if not updated.update(
+                        preserve=pending.preserve,
+                        production_date=pending.production_date,
+                        quantity=pending.quantity,
+                    ):
+                        raise Http404("Активная партия не найдена.")
+        except IntegrityError:
+            if not form.active_slot_taken():
+                raise
+            form.add_error(None, ACTIVE_BATCH_CONFLICT)
+        else:
+            return redirect("batches:detail", batch_id=batch.pk)
+
+    return render(request, "edit_form.html", {
+        "form": form,
+        "title": "Редактирование партии" if batch else "Новая партия",
+        "back_url": (
+            reverse("batches:detail", args=[batch.pk])
+            if batch else reverse("batches:list")
+        ),
+    })
+
+
+@require_http_methods(["GET", "POST"])
+@login_required
+@permission_required("batches.add_batch", raise_exception=True)
+def batch_create(request):
+    return _batch_form(request)
+
+
+@require_http_methods(["GET", "POST"])
+@login_required
+@permission_required("batches.change_batch", raise_exception=True)
+def batch_update(request, batch_id):
+    batch = get_object_or_404(Batch.objects.active(), pk=batch_id)
+    return _batch_form(request, batch)
+
+
+@require_POST
+@login_required
+@permission_required("batches.change_batch", raise_exception=True)
+def batch_discard(request, batch_id):
+    batch = get_object_or_404(Batch.objects.active(), pk=batch_id)
+    if not batch.discard():
+        raise Http404("Активная партия не найдена.")
+    return redirect("batches:list")
 
 
 def batch_statistics(request: HttpRequest) -> HttpResponse:

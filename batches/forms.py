@@ -1,10 +1,11 @@
 """Формы фильтрации партий."""
 
 from django import forms
+from django.utils import timezone
 
 from preserves.models import Preserve, Product
 
-from .models import Batch
+from .models import ACTIVE_BATCH_CONFLICT, Batch
 
 
 SORT_OPTIONS = {
@@ -85,4 +86,61 @@ class BatchFilterForm(forms.Form):
                 raise forms.ValidationError(
                     "Выбранная заготовка относится к другому сырью."
                 )
+        return cleaned
+
+
+class BatchForm(forms.ModelForm):
+    production_date = forms.DateField(
+        label="Дата производства",
+        input_formats=("%Y-%m-%d",),
+        initial=timezone.localdate,
+        help_text="Для новой партии укажите сегодняшнюю или будущую дату.",
+        widget=forms.DateInput(
+            format="%Y-%m-%d",
+            attrs={"class": "form-control", "type": "date"},
+        ),
+    )
+    quantity = forms.IntegerField(
+        label="Количество банок", min_value=1,
+        widget=forms.NumberInput(attrs={"class": "form-control"}),
+    )
+
+    class Meta:
+        model = Batch
+        fields = ("preserve", "production_date", "quantity")
+        widgets = {"preserve": forms.Select(attrs={"class": "form-select"})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["preserve"].queryset = Preserve.objects.order_by(
+            "name", "pk"
+        )
+
+    def clean_production_date(self):
+        value = self.cleaned_data["production_date"]
+        same_slot = (
+            self.instance.pk is not None
+            and value == self.instance.production_date
+            and "preserve" not in self.changed_data
+        )
+        if value < timezone.localdate() and not same_slot:
+            raise forms.ValidationError(
+                "Нельзя выбрать прошедшую дату для новой партии "
+                "или переноса существующей."
+            )
+        return value
+
+    def active_slot_taken(self):
+        preserve = self.cleaned_data.get("preserve")
+        day = self.cleaned_data.get("production_date")
+        if preserve is None or day is None:
+            return False
+        return Batch.objects.active().filter(
+            preserve=preserve, production_date=day
+        ).exclude(pk=self.instance.pk).exists()
+
+    def clean(self):
+        cleaned = super().clean()
+        if self.active_slot_taken():
+            raise forms.ValidationError(ACTIVE_BATCH_CONFLICT)
         return cleaned
