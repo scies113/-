@@ -5,23 +5,13 @@ from django.db.models import Count, F, Q, Sum
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
-from preserves.models import Preserve, Product
-from config.query_params import parse_iso_date
+from preserves.models import Preserve
 
+from .forms import BatchFilterForm, SORT_OPTIONS
 from .models import Batch
 
 
 PAGE_SIZE = 5
-SORT_OPTIONS = {
-    "newest": ("Сначала новые", ("-production_date", "-pk")),
-    "oldest": ("Сначала старые", ("production_date", "pk")),
-    "quantity": (
-        "По остатку банок", ("-available_quantity", "-production_date", "-pk")
-    ),
-    "preserve": (
-        "По заготовке", ("preserve__name", "-production_date", "-pk")
-    ),
-}
 
 
 def batch_list(request: HttpRequest) -> HttpResponse:
@@ -50,82 +40,38 @@ def batch_detail(request: HttpRequest, batch_id: int) -> HttpResponse:
 
 def batch_search(request: HttpRequest) -> HttpResponse:
     """Поиск по названию заготовки или сырья и совместные фильтры."""
-    query = request.GET.get("q", "").strip()
-    date_filter = request.GET.get("date", "").strip()
-    status = request.GET.get("status", "").strip()
-    category = request.GET.get("category", "").strip()
-    preserve = request.GET.get("preserve", "").strip()
-    product = request.GET.get("product", "").strip()
-    sort = request.GET.get("sort", "newest")
-    if sort not in SORT_OPTIONS:
-        sort = "newest"
-
-    product_rows = list(
-        Product.objects.order_by("name", "pk").values_list(
-            "pk", "name", "category"
-        )
-    )
-    categories = sorted({name for _, _, name in product_rows})
-    products = {str(pk): name for pk, name, _ in product_rows}
-    preserves = {
-        str(pk): name for pk, name in Preserve.objects.order_by(
-            "name", "pk"
-        ).values_list("pk", "name")
-    }
-    filters = {}
-    errors = []
-    if date_filter:
-        try:
-            filters["production_date"] = parse_iso_date(date_filter)
-        except ValueError:
-            errors.append("Введите дату в формате ГГГГ-ММ-ДД.")
-    if status in Batch.Status.values:
-        filters["status"] = status
-    elif status:
-        errors.append("Выберите допустимый статус.")
-    if category in categories:
-        filters["preserve__product__category"] = category
-    elif category:
-        errors.append("Выберите категорию из списка.")
-    for value, options, field, message in (
-        (preserve, preserves, "preserve_id", "Выберите заготовку из списка."),
-        (
-            product, products, "preserve__product_id",
-            "Выберите сырьё из списка.",
-        ),
-    ):
-        if value in options:
-            filters[field] = int(value)
-        elif value:
-            errors.append(message)
-
-    batches = Batch.objects.filter(**filters)
-    if query:
-        batches = batches.search(query)
-    if errors:
-        batches = batches.none()
+    form = BatchFilterForm(request.GET or None)
+    batches = Batch.objects.all()
+    sort = "newest"
+    if form.is_bound:
+        if form.is_valid() or set(form.errors) == {"sort"}:
+            data = form.cleaned_data
+            sort = data.get("sort") or sort
+            filters = {
+                field: data[param]
+                for field, param in (
+                    ("production_date", "date"),
+                    ("status", "status"),
+                    ("preserve_id", "preserve"),
+                    ("preserve__product_id", "product"),
+                    ("preserve__product__category", "category"),
+                )
+                if data.get(param)
+            }
+            batches = batches.filter(**filters)
+            if data["q"]:
+                batches = batches.search(data["q"])
+        else:
+            batches = batches.none()
     rows = batches.order_by(*SORT_OPTIONS[sort][1]).values(
         "id", "production_date", "status", "available_quantity",
         preserve_name=F("preserve__name"),
     )
     page_obj = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
-    context = {
+    return render(request, "batches/search.html", {
         "page_obj": page_obj,
-        "query": query,
-        "date_filter": date_filter,
-        "status_filter": status,
-        "category_filter": category,
-        "categories": categories,
-        "statuses": Batch.Status.choices,
-        "preserve_filter": preserve,
-        "product_filter": product,
-        "preserves": preserves,
-        "products": products,
-        "sort": sort,
-        "sort_options": SORT_OPTIONS,
-        "errors": errors,
-    }
-    return render(request, "batches/search.html", context)
+        "form": form,
+    })
 
 
 def batch_statistics(request: HttpRequest) -> HttpResponse:
