@@ -15,6 +15,10 @@ __pycache__/
 .coverage
 htmlcov/
 
+# Локальная база Django (ПР9)
+/db.sqlite3
+/db.sqlite3-*
+
 # Редактор и ОС
 .vscode/
 .idea/

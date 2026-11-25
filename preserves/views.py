@@ -1,87 +1,49 @@
 """Представления приложения preserves."""
 
+from django.db.models import Count
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
-from db.database import get_connection
+from .models import Preserve, Product
+from .search import Casefold
 
 
 def preserve_list(request: HttpRequest) -> HttpResponse:
-    """Отображение списка видов заготовок из базы данных SQLite."""
-    sql = (
-        "SELECT "
-        "  p.id, "
-        "  p.name, "
-        "  p.recipe_notes, "
-        "  pr.name AS product_name, "
-        "  pr.category AS product_category "
-        "FROM preserves p "
-        "JOIN products pr ON p.product_id = pr.id "
-        "ORDER BY p.name ASC;"
-    )
-    with get_connection() as conn:
-        rows = conn.execute(sql).fetchall()
-
-    return render(
-        request,
-        "preserves/list.html",
-        {"preserves": rows},
-    )
-
-
-def preserve_detail(request: HttpRequest, preserve_id: int) -> HttpResponse:
-    """Карточка конкретной заготовки с описанием и сырьем из SQLite."""
-    sql = (
-        "SELECT "
-        "  p.id, "
-        "  p.name, "
-        "  p.recipe_notes, "
-        "  pr.name AS product_name, "
-        "  pr.category AS product_category "
-        "FROM preserves p "
-        "JOIN products pr ON p.product_id = pr.id "
-        "WHERE p.id = ?;"
-    )
-    with get_connection() as conn:
-        preserve = conn.execute(sql, [preserve_id]).fetchone()
-
-    if preserve is None:
-        return render(
-            request,
-            "404.html",
-            {
-                "message": (
-                    f"Заготовка с идентификатором #{preserve_id} не найдена."
-                )
-            },
-            status=404,
+    """Каталог с поиском по названию заготовки."""
+    query = request.GET.get("q", "").strip()
+    preserves = Preserve.objects.select_related("product").order_by("name")
+    if query:
+        preserves = preserves.alias(search_name=Casefold("name")).filter(
+            search_name__contains=query.casefold()
         )
 
     return render(
         request,
-        "preserves/detail.html",
-        {"preserve": preserve},
+        "preserves/list.html",
+        {"preserves": preserves, "query": query},
     )
+
+
+def preserve_detail(request: HttpRequest, preserve_id: int) -> HttpResponse:
+    """Карточка заготовки и связанного сырья."""
+    try:
+        preserve = Preserve.objects.select_related("product").get(
+            pk=preserve_id
+        )
+    except Preserve.DoesNotExist:
+        return render(
+            request,
+            "404.html",
+            {"message": f"Заготовка с ID #{preserve_id} не найдена."},
+            status=404,
+        )
+
+    return render(request, "preserves/detail.html", {"preserve": preserve})
 
 
 def product_list(request: HttpRequest) -> HttpResponse:
-    """Справочник базового сырья из SQLite."""
-    sql = (
-        "SELECT "
-        "  pr.id, "
-        "  pr.name, "
-        "  pr.category, "
-        "  COUNT(p.id) AS recipes_count "
-        "FROM products pr "
-        "LEFT JOIN preserves p ON pr.id = p.product_id "
-        "GROUP BY pr.id, pr.name, pr.category "
-        "ORDER BY pr.name ASC;"
-    )
-    with get_connection() as conn:
-        products = conn.execute(sql).fetchall()
-
-    return render(
-        request,
-        "preserves/products.html",
-        {"products": products},
-    )
+    """Справочник сырья, включая продукты без рецептов."""
+    products = Product.objects.annotate(
+        recipes_count=Count("preserves")
+    ).order_by("name")
+    return render(request, "preserves/products.html", {"products": products})

@@ -1,185 +1,138 @@
 """Представления приложения batches."""
 
 from datetime import date
-import sqlite3
-from typing import Any
 
+from django.core.paginator import Paginator
+from django.db.models import Count, F, Q, Sum
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
-from db.database import get_connection
+from preserves.models import Preserve, Product
+from preserves.search import Casefold
+
+from .models import Batch
 
 
-def _format_batch_row(row: sqlite3.Row) -> dict[str, Any]:
-    """Преобразует строку БД в словарь с поддержкой форматирования дат."""
-    item = dict(row)
-    raw_date = item.get("production_date")
-    if isinstance(raw_date, str):
-        try:
-            item["production_date"] = date.fromisoformat(raw_date)
-        except (ValueError, TypeError):
-            pass
-    return item
+PAGE_SIZE = 5
+SORT_OPTIONS = {
+    "newest": ("Сначала новые", ("-production_date", "-pk")),
+    "oldest": ("Сначала старые", ("production_date", "pk")),
+    "quantity": ("По остатку банок", ("-quantity", "-production_date", "-pk")),
+    "preserve": (
+        "По заготовке", ("preserve__name", "-production_date", "-pk")
+    ),
+}
 
 
 def batch_list(request: HttpRequest) -> HttpResponse:
-    """Отображение списка активных партий в погребе из базы данных."""
-    sql = (
-        "SELECT "
-        "  b.id, "
-        "  b.preserve_id, "
-        "  p.name AS preserve_name, "
-        "  b.production_date, "
-        "  b.quantity, "
-        "  b.is_consumed "
-        "FROM batches b "
-        "JOIN preserves p ON b.preserve_id = p.id "
-        "WHERE b.is_consumed = 0 "
-        "ORDER BY b.production_date DESC;"
-    )
-    with get_connection() as conn:
-        rows = conn.execute(sql).fetchall()
-
-    formatted = [_format_batch_row(r) for r in rows]
-    return render(
-        request,
-        "batches/list.html",
-        {"batches": formatted},
-    )
+    """Постраничный список активных партий."""
+    active = Batch.objects.select_related("preserve").exclude(
+        is_consumed=True
+    ).order_by("-production_date", "-pk")
+    page_obj = Paginator(active, PAGE_SIZE).get_page(request.GET.get("page"))
+    return render(request, "batches/list.html", {"page_obj": page_obj})
 
 
 def batch_detail(request: HttpRequest, batch_id: int) -> HttpResponse:
-    """Детальная карточка конкретной партии с данными заготовки и сырья."""
-    sql = (
-        "SELECT "
-        "  b.id, "
-        "  b.preserve_id, "
-        "  b.production_date, "
-        "  b.quantity, "
-        "  b.is_consumed, "
-        "  p.name AS preserve_name, "
-        "  p.recipe_notes, "
-        "  pr.name AS product_name, "
-        "  pr.category AS product_category "
-        "FROM batches b "
-        "JOIN preserves p ON b.preserve_id = p.id "
-        "JOIN products pr ON p.product_id = pr.id "
-        "WHERE b.id = ?;"
-    )
-    with get_connection() as conn:
-        row = conn.execute(sql, [batch_id]).fetchone()
-
-    if row is None:
+    """Карточка партии с заготовкой и сырьём в одном запросе."""
+    try:
+        batch = Batch.objects.select_related("preserve__product").get(
+            pk=batch_id
+        )
+    except Batch.DoesNotExist:
         return render(
             request,
             "404.html",
-            {
-                "message": (
-                    f"Партия с идентификатором #{batch_id} не найдена."
-                )
-            },
+            {"message": f"Партия с идентификатором #{batch_id} не найдена."},
             status=404,
         )
 
-    return render(
-        request,
-        "batches/detail.html",
-        {"batch": _format_batch_row(row)},
-    )
+    return render(request, "batches/detail.html", {"batch": batch})
 
 
 def batch_search(request: HttpRequest) -> HttpResponse:
-    """Поиск партий по дате выработки или статусу доступности через SQL."""
+    """Поиск по названию заготовки или сырья и совместные фильтры."""
+    query = request.GET.get("q", "").strip()
     date_filter = request.GET.get("date", "").strip()
-    status_filter = request.GET.get("status", "").strip()
+    status = request.GET.get("status", "").strip()
+    category = request.GET.get("category", "").strip()
+    sort = request.GET.get("sort", "newest")
+    if sort not in SORT_OPTIONS:
+        sort = "newest"
 
-    sql = (
-        "SELECT "
-        "  b.id, "
-        "  b.preserve_id, "
-        "  p.name AS preserve_name, "
-        "  b.production_date, "
-        "  b.quantity, "
-        "  b.is_consumed "
-        "FROM batches b "
-        "JOIN preserves p ON b.preserve_id = p.id "
+    categories = list(
+        Product.objects.order_by("category").values_list(
+            "category", flat=True
+        ).distinct()
     )
-    conditions = []
-    params: list[Any] = []
-
+    filters = {}
+    errors = []
     if date_filter:
-        conditions.append("b.production_date = ?")
-        params.append(date_filter)
+        try:
+            production_date = date.fromisoformat(date_filter)
+            if production_date.isoformat() != date_filter:
+                raise ValueError
+            filters["production_date"] = production_date
+        except ValueError:
+            errors.append("Введите дату в формате ГГГГ-ММ-ДД.")
+    if status in {"active", "consumed"}:
+        filters["is_consumed"] = status == "consumed"
+    elif status:
+        errors.append("Выберите допустимый статус.")
+    if category in categories:
+        filters["preserve__product__category"] = category
+    elif category:
+        errors.append("Выберите категорию из списка.")
 
-    if status_filter == "active":
-        conditions.append("b.is_consumed = 0")
-    elif status_filter == "consumed":
-        conditions.append("b.is_consumed = 1")
-
-    if conditions:
-        sql += " WHERE " + " AND ".join(conditions)
-
-    sql += " ORDER BY b.production_date DESC;"
-
-    with get_connection() as conn:
-        rows = conn.execute(sql, params).fetchall()
-
-    formatted = [_format_batch_row(r) for r in rows]
+    batches = Batch.objects.filter(**filters)
+    if query:
+        term = query.casefold()
+        batches = batches.alias(
+            preserve_search=Casefold("preserve__name"),
+            product_search=Casefold("preserve__product__name"),
+        ).filter(
+            Q(preserve_search__contains=term)
+            | Q(product_search__contains=term)
+        )
+    if errors:
+        batches = batches.none()
+    rows = batches.order_by(*SORT_OPTIONS[sort][1]).values(
+        "id", "production_date", "quantity", "is_consumed",
+        preserve_name=F("preserve__name"),
+    )
+    page_obj = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
     context = {
-        "batches": formatted,
+        "page_obj": page_obj,
+        "query": query,
         "date_filter": date_filter,
-        "status_filter": status_filter,
+        "status_filter": status,
+        "category_filter": category,
+        "categories": categories,
+        "sort": sort,
+        "sort_options": SORT_OPTIONS,
+        "errors": errors,
     }
     return render(request, "batches/search.html", context)
 
 
 def batch_statistics(request: HttpRequest) -> HttpResponse:
-    """Агрегированная аналитическая статистика по запасам через SQL."""
-    summary_sql = (
-        "SELECT "
-        "  COUNT(id) AS total_batches_count, "
-        "  SUM(CASE WHEN is_consumed = 0 THEN 1 ELSE 0 END) "
-        "    AS active_batches_count, "
-        "  COALESCE("
-        "    SUM(CASE WHEN is_consumed = 0 THEN quantity ELSE 0 END), 0"
-        "  ) AS total_jars "
-        "FROM batches;"
+    """Сводка остатков и группировка партий по заготовкам."""
+    active = Q(is_consumed=False)
+    summary = Batch.objects.aggregate(
+        total_batches_count=Count("pk"),
+        active_batches_count=Count("pk", filter=active),
+        total_jars=Sum("quantity", filter=active, default=0),
     )
-
-    group_sql = (
-        "SELECT "
-        "  p.name AS preserve_name, "
-        "  COUNT(b.id) AS batches_count, "
-        "  COALESCE("
-        "    SUM(CASE WHEN b.is_consumed = 0 THEN b.quantity ELSE 0 END), 0"
-        "  ) AS total_quantity "
-        "FROM preserves p "
-        "LEFT JOIN batches b ON p.id = b.preserve_id "
-        "GROUP BY p.id, p.name "
-        "ORDER BY total_quantity DESC, p.name ASC;"
+    preserve_stats = Preserve.objects.annotate(
+        batches_count=Count("batches"),
+        total_quantity=Sum(
+            "batches__quantity",
+            filter=Q(batches__is_consumed=False),
+            default=0,
+        ),
+    ).order_by("-total_quantity", "name", "pk")
+    return render(
+        request,
+        "batches/statistics.html",
+        {**summary, "preserve_stats": preserve_stats},
     )
-
-    with get_connection() as conn:
-        summary_row = conn.execute(summary_sql).fetchone()
-        group_rows = conn.execute(group_sql).fetchall()
-
-    total_jars = summary_row["total_jars"] if summary_row else 0
-    active_count = summary_row["active_batches_count"] if summary_row else 0
-    total_count = summary_row["total_batches_count"] if summary_row else 0
-
-    preserve_stats = [
-        {
-            "preserve_name": r["preserve_name"],
-            "batches_count": r["batches_count"],
-            "total_quantity": r["total_quantity"],
-        }
-        for r in group_rows
-    ]
-
-    context = {
-        "total_jars": total_jars,
-        "active_batches_count": active_count,
-        "total_batches_count": total_count,
-        "preserve_stats": preserve_stats,
-    }
-    return render(request, "batches/statistics.html", context)

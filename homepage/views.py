@@ -1,29 +1,23 @@
 """Представления приложения homepage."""
 
+from django.db.models import Sum
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
-from db.database import get_connection
+from batches.models import Batch
+from preserves.models import Preserve, Product
 
 
 def index(request: HttpRequest) -> HttpResponse:
-    """Главная страница системы учета домашних заготовок."""
-    with get_connection() as conn:
-        preserves_count = conn.execute(
-            "SELECT COUNT(*) FROM preserves;"
-        ).fetchone()[0]
-        products_count = conn.execute(
-            "SELECT COUNT(*) FROM products;"
-        ).fetchone()[0]
-        jars_row = conn.execute(
-            "SELECT COALESCE(SUM(quantity), 0) FROM batches "
-            "WHERE is_consumed = 0;"
-        ).fetchone()
-        total_jars = jars_row[0] if jars_row else 0
-
+    """Главная страница с количеством рецептов, сырья и банок."""
+    active_batches = Batch.objects.filter(is_consumed=False)
     context = {
-        "preserves_count": preserves_count,
-        "products_count": products_count,
-        "total_jars": total_jars,
+        "preserves_count": Preserve.objects.count(),
+        "products_count": Product.objects.count(),
+        "total_jars": active_batches.aggregate(
+            total=Sum("quantity", default=0)
+        )["total"],
+        "largest_batches": active_batches.filter(quantity__gt=0)
+        .select_related("preserve").order_by("-quantity", "-pk")[:3],
     }
     return render(request, "homepage/index.html", context)

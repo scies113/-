@@ -25,10 +25,10 @@
           <dt class="col-sm-4 text-muted">Основное сырье:</dt>
           <dd class="col-sm-8">
             <span class="badge bg-light text-dark border fs-6">
-              {{ preserve.product_name|default:"Нет данных" }}
+              {{ preserve.product.name|default:"Нет данных" }}
             </span>
-            {% if preserve.product_category %}
-              <small class="text-muted ms-2">(категория: {{ preserve.product_category }})</small>
+            {% if preserve.product.category %}
+              <small class="text-muted ms-2">(категория: {{ preserve.product.category }})</small>
             {% endif %}
           </dd>
 

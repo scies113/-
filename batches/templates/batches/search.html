@@ -5,17 +5,30 @@
 {% block content %}
 <div class="mb-4">
   <h1 class="h2">Поиск партий в погребе</h1>
-  <p class="text-muted">Фильтрация партий по дате выработки или статусу доступности.</p>
+  <p class="text-muted">Поиск по названию заготовки или сырья. Фильтры можно сочетать.</p>
 </div>
 
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body p-4">
     <form method="get" class="row g-3">
-      <div class="col-md-5">
+      <div class="col-md-6">
+        <label for="batchQuery" class="form-label fw-semibold">Заготовка или сырьё</label>
+        <input id="batchQuery" class="form-control" type="search" name="q" value="{{ query }}">
+      </div>
+      <div class="col-md-6">
+        <label for="categorySelect" class="form-label fw-semibold">Категория сырья</label>
+        <select class="form-select" id="categorySelect" name="category">
+          <option value="">Все категории</option>
+          {% for category in categories %}
+            <option value="{{ category }}" {% if category == category_filter %}selected{% endif %}>{{ category }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
         <label for="dateInput" class="form-label fw-semibold">Дата производства (ГГГГ-ММ-ДД):</label>
         <input type="text" class="form-control" id="dateInput" name="date" placeholder="например, 2026-09-10" value="{{ date_filter }}">
       </div>
-      <div class="col-md-5">
+      <div class="col-md-4">
         <label for="statusSelect" class="form-label fw-semibold">Статус партии:</label>
         <select class="form-select" id="statusSelect" name="status">
           <option value="" {% if not status_filter %}selected{% endif %}>Все партии (любой статус)</option>
@@ -23,16 +36,29 @@
           <option value="consumed" {% if status_filter == 'consumed' %}selected{% endif %}>Только израсходованные</option>
         </select>
       </div>
-      <div class="col-md-2 d-flex align-items-end">
-        <button type="submit" class="btn btn-success w-100">Найти</button>
+      <div class="col-md-4">
+        <label for="sortSelect" class="form-label fw-semibold">Сортировка</label>
+        <select class="form-select" id="sortSelect" name="sort">
+          {% for value, option in sort_options.items %}
+            <option value="{{ value }}" {% if value == sort %}selected{% endif %}>{{ option.0 }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 d-flex gap-2">
+        <button type="submit" class="btn btn-success">Найти</button>
+        <a class="btn btn-outline-secondary" href="{% url 'batches:search' %}">Сбросить</a>
       </div>
     </form>
   </div>
 </div>
 
+{% if errors %}
+<div class="alert alert-warning" role="alert">{{ errors|join:" " }}</div>
+{% endif %}
+
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h2 class="h4 mb-0">Результаты поиска</h2>
-  <span class="badge bg-secondary fs-6">Найдено: {{ batches|length }}</span>
+  <span class="badge bg-secondary fs-6">Найдено: {{ page_obj.paginator.count }}</span>
 </div>
 
 <div class="card shadow-sm border-0">
@@ -49,7 +75,7 @@
         </tr>
       </thead>
       <tbody>
-        {% for batch in batches %}
+        {% for batch in page_obj %}
           <tr>
             <td class="fw-bold text-muted">#{{ batch.id }}</td>
             <td class="fw-semibold text-success">
@@ -79,4 +105,5 @@
     </table>
   </div>
 </div>
+{% include 'includes/pagination.html' %}
 {% endblock %}

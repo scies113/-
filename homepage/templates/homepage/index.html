@@ -61,4 +61,18 @@
     </div>
   </div>
 </div>
+
+{% if largest_batches %}
+<section class="mt-4">
+  <h2 class="h4">Партии с наибольшим запасом</h2>
+  <ul class="list-group">
+    {% for batch in largest_batches %}
+      <li class="list-group-item d-flex justify-content-between gap-3">
+        <a href="{% url 'batches:detail' batch.pk %}">{{ batch.preserve.name }} от {{ batch.production_date|date:"d.m.Y" }}</a>
+        <span>{{ batch.quantity }} шт.</span>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
 {% endblock %}
