@@ -1,12 +1,16 @@
 """Представления приложения preserves."""
 
+from django.contrib.auth.decorators import login_required, permission_required
 from django.db.models import Count, Exists, OuterRef
 from django.http import Http404, HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.views.decorators.http import require_http_methods
 
 from batches.models import Batch
 from config.query_params import parse_iso_date
 
+from .forms import PreserveForm
 from .models import Preserve, Product
 from .search import search_names
 
@@ -72,3 +76,42 @@ def product_list(request: HttpRequest) -> HttpResponse:
         recipes_count=Count("preserves")
     ).order_by("name")
     return render(request, "preserves/products.html", {"products": products})
+
+
+def _preserve_form(request, preserve=None):
+    submitted = request.method == "POST"
+    form = PreserveForm(
+        request.POST if submitted else None,
+        request.FILES if submitted else None,
+        instance=preserve,
+    )
+    if submitted and form.is_valid():
+        if preserve is None:
+            preserve = form.save()
+        elif form.changed_data:
+            preserve = form.save(commit=False)
+            preserve.save(update_fields=form.changed_data)
+        return redirect(preserve)
+    return render(request, "edit_form.html", {
+        "form": form,
+        "title": "Редактирование заготовки" if preserve else "Новая заготовка",
+        "back_url": (
+            preserve.get_absolute_url()
+            if preserve else reverse("preserves:list")
+        ),
+    })
+
+
+@require_http_methods(["GET", "POST"])
+@login_required
+@permission_required("preserves.add_preserve", raise_exception=True)
+def preserve_create(request):
+    return _preserve_form(request)
+
+
+@require_http_methods(["GET", "POST"])
+@login_required
+@permission_required("preserves.change_preserve", raise_exception=True)
+def preserve_update(request, preserve_id):
+    preserve = get_object_or_404(Preserve, pk=preserve_id)
+    return _preserve_form(request, preserve)

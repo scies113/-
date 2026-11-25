@@ -18,6 +18,11 @@
         <h2 class="h4 mb-0">{{ preserve.name }}</h2>
       </div>
       <div class="card-body p-4">
+        {% if preserve.photo %}
+          <img class="img-fluid rounded mb-4 preserve-photo" src="{{ preserve.photo.url }}" alt="{{ preserve.name }}" decoding="async">
+        {% else %}
+          <p class="text-muted mb-4">Фотография ещё не добавлена.</p>
+        {% endif %}
         <dl class="row mb-0">
           <dt class="col-sm-4 text-muted">Идентификатор:</dt>
           <dd class="col-sm-8 fw-semibold">#{{ preserve.id }}</dd>
@@ -38,13 +43,16 @@
           </dd>
         </dl>
       </div>
-      <div class="card-footer bg-light d-flex justify-content-between py-3">
+      <div class="card-footer bg-light d-flex flex-wrap gap-2 py-3">
         <a href="{% url 'preserves:list' %}" class="btn btn-outline-secondary">
           &larr; Назад к списку заготовок
         </a>
-        <a href="{% url 'batches:search' %}?date=&status=active" class="btn btn-success">
+        <a href="{% url 'batches:search' %}?preserve={{ preserve.pk }}&amp;status=active" class="btn btn-success">
           Искать партии в погребе
         </a>
+        {% if perms.preserves.change_preserve %}
+          <a href="{% url 'preserves:update' preserve.pk %}" class="btn btn-outline-primary">Редактировать заготовку</a>
+        {% endif %}
       </div>
     </div>
   </div>

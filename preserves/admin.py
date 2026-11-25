@@ -2,11 +2,13 @@
 
 from django.contrib import admin
 from django.core.exceptions import ValidationError
+from django.db import models
 from django.forms.models import BaseInlineFormSet
 
 from batches.models import ACTIVE_BATCH_CONFLICT, Batch
 from config.admin import PreserveProjectAdmin
 
+from .forms import PreservePhotoField
 from .models import Preserve, Product
 
 
@@ -55,6 +57,9 @@ class ProductAdmin(PreserveProjectAdmin):
 
 @admin.register(Preserve)
 class PreserveAdmin(PreserveProjectAdmin):
+    formfield_overrides = {
+        models.ImageField: {"form_class": PreservePhotoField},
+    }
     list_display = ("name", "product")
     list_filter = ("product__category",)
     list_select_related = ("product",)

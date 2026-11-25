@@ -3,6 +3,7 @@
 from typing import Any
 
 from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
@@ -34,6 +35,11 @@ urlpatterns = [
     path('preserves/', include('preserves.urls')),
     path('batches/', include('batches.urls')),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(
+        settings.MEDIA_URL, document_root=settings.MEDIA_ROOT
+    )
 
 if settings.ENABLE_DEBUG_TOOLBAR:
     from debug_toolbar.toolbar import debug_toolbar_urls

@@ -1,10 +1,16 @@
 """Модели справочника сырья и рецептов."""
 
+from pathlib import Path
 from uuid import uuid4
 
 from django.db import models
 from django.urls import reverse
 from django.utils.text import slugify
+
+
+def preserve_photo_path(instance, filename):
+    suffix = Path(filename).suffix.lower()
+    return f"preserves/{uuid4().hex}{suffix}"
 
 
 class Product(models.Model):
@@ -35,6 +41,12 @@ class Preserve(models.Model):
     slug = models.SlugField(
         "Слаг", max_length=220, allow_unicode=True, unique=True,
         help_text="Используется в адресе страницы заготовки.",
+    )
+    photo = models.ImageField(
+        "Фотография", upload_to=preserve_photo_path, blank=True,
+        help_text=(
+            "JPEG, PNG или WebP до 5 МБ и не более 4096 × 4096 пикселей."
+        ),
     )
 
     class Meta:
