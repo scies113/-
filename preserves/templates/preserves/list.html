@@ -8,9 +8,14 @@
     <label for="preserveQuery" class="form-label">Название заготовки</label>
     <input id="preserveQuery" class="form-control" type="search" name="q" value="{{ query }}">
   </div>
+  <div>
+    <label for="stockDate" class="form-label">В наличии на дату производства</label>
+    <input id="stockDate" class="form-control" type="date" name="date" value="{{ date_filter }}">
+  </div>
   <button class="btn btn-success" type="submit">Найти</button>
-  {% if query %}<a class="btn btn-outline-secondary" href="{% url 'preserves:list' %}">Сбросить</a>{% endif %}
+  {% if query or date_filter %}<a class="btn btn-outline-secondary" href="{% url 'preserves:list' %}">Сбросить</a>{% endif %}
 </form>
+{% if date_error %}<div class="alert alert-warning" role="alert">{{ date_error }}</div>{% endif %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1 class="h2 mb-0">Каталог видов заготовок</h1>
   <span class="badge bg-success fs-6">Всего: {{ preserves|length }}</span>
@@ -31,7 +36,7 @@
           </p>
         </div>
         <div class="card-footer bg-transparent border-top-0 pb-3">
-          <a href="{% url 'preserves:detail' preserve.id %}" class="btn btn-sm btn-outline-success w-100">
+          <a href="{{ preserve.get_absolute_url }}" class="btn btn-sm btn-outline-success w-100">
             Подробнее о заготовке
           </a>
         </div>
@@ -40,7 +45,7 @@
   {% empty %}
     <div class="col-12">
       <div class="alert alert-info" role="alert">
-        Список заготовок пуст. Добавьте первый рецепт!
+        {% if query or date_filter %}По заданным условиям заготовки не найдены.{% else %}Список заготовок пуст.{% endif %}
       </div>
     </div>
   {% endfor %}

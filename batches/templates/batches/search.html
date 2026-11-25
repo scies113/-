@@ -24,6 +24,24 @@
           {% endfor %}
         </select>
       </div>
+      <div class="col-md-6">
+        <label for="preserveSelect" class="form-label fw-semibold">Заготовка</label>
+        <select class="form-select" id="preserveSelect" name="preserve">
+          <option value="">Все заготовки</option>
+          {% for value, label in preserves.items %}
+            <option value="{{ value }}" {% if value == preserve_filter %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label for="productSelect" class="form-label fw-semibold">Сырьё</label>
+        <select class="form-select" id="productSelect" name="product">
+          <option value="">Всё сырьё</option>
+          {% for value, label in products.items %}
+            <option value="{{ value }}" {% if value == product_filter %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
       <div class="col-md-4">
         <label for="dateInput" class="form-label fw-semibold">Дата производства (ГГГГ-ММ-ДД):</label>
         <input type="text" class="form-control" id="dateInput" name="date" placeholder="например, 2026-09-10" value="{{ date_filter }}">
@@ -32,8 +50,9 @@
         <label for="statusSelect" class="form-label fw-semibold">Статус партии:</label>
         <select class="form-select" id="statusSelect" name="status">
           <option value="" {% if not status_filter %}selected{% endif %}>Все партии (любой статус)</option>
-          <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Только активные (в наличии)</option>
-          <option value="consumed" {% if status_filter == 'consumed' %}selected{% endif %}>Только израсходованные</option>
+          {% for value, label in statuses %}
+            <option value="{{ value }}" {% if value == status_filter %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
         </select>
       </div>
       <div class="col-md-4">
@@ -84,7 +103,7 @@
             <td>
               {{ batch.production_date|date:"d.m.Y"|default:batch.production_date }}
             </td>
-            <td>{{ batch.quantity }} шт.</td>
+            <td>{{ batch.available_quantity }} шт.</td>
             <td>
               {% include 'includes/batch_status.html' with batch=batch %}
             </td>

@@ -1,5 +1,7 @@
-{% if batch.is_consumed %}
+{% if batch.status == 'consumed' %}
   <span class="badge badge-status-consumed">Израсходована</span>
+{% elif batch.status == 'discarded' %}
+  <span class="badge bg-secondary">Списана</span>
 {% else %}
-  <span class="badge badge-status-active">Активна</span>
+  <span class="badge badge-status-active">В наличии</span>
 {% endif %}

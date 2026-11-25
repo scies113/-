@@ -1,40 +1,65 @@
 """Представления приложения preserves."""
 
-from django.db.models import Count
-from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render
+from django.db.models import Count, Exists, OuterRef
+from django.http import Http404, HttpRequest, HttpResponse
+from django.shortcuts import get_object_or_404, render
+
+from batches.models import Batch
+from config.query_params import parse_iso_date
 
 from .models import Preserve, Product
-from .search import Casefold
+from .search import search_names
 
 
 def preserve_list(request: HttpRequest) -> HttpResponse:
-    """Каталог с поиском по названию заготовки."""
+    """Каталог с поиском и проверкой запасов на дату производства."""
     query = request.GET.get("q", "").strip()
+    date_filter = request.GET.get("date", "").strip()
+    date_error = ""
     preserves = Preserve.objects.select_related("product").order_by("name")
     if query:
-        preserves = preserves.alias(search_name=Casefold("name")).filter(
-            search_name__contains=query.casefold()
-        )
+        preserves = search_names(preserves, query, "name")
+    if date_filter:
+        try:
+            production_date = parse_iso_date(date_filter)
+        except ValueError:
+            date_error = "Введите дату в формате ГГГГ-ММ-ДД."
+            preserves = preserves.none()
+        else:
+            stock = Batch.objects.available().filter(
+                preserve_id=OuterRef("pk"), production_date=production_date
+            )
+            preserves = preserves.filter(Exists(stock))
 
     return render(
         request,
         "preserves/list.html",
-        {"preserves": preserves, "query": query},
+        {
+            "preserves": preserves,
+            "query": query,
+            "date_filter": date_filter,
+            "date_error": date_error,
+        },
     )
 
 
-def preserve_detail(request: HttpRequest, preserve_id: int) -> HttpResponse:
-    """Карточка заготовки и связанного сырья."""
+def preserve_detail(
+    request: HttpRequest,
+    preserve_id: int | None = None,
+    slug: str | None = None,
+) -> HttpResponse:
+    """Карточка заготовки по слагу или по прежнему числовому адресу."""
+    lookup = {"slug": slug} if slug is not None else {"pk": preserve_id}
+    label = slug if slug is not None else f"№{preserve_id}"
     try:
-        preserve = Preserve.objects.select_related("product").get(
-            pk=preserve_id
+        preserve = get_object_or_404(
+            Preserve.objects.select_related("product"), **lookup
         )
-    except Preserve.DoesNotExist:
+    except Http404:
         return render(
             request,
             "404.html",
-            {"message": f"Заготовка с ID #{preserve_id} не найдена."},
+            {"message": f"Заготовка «{label}» не найдена."},
             status=404,
         )
 

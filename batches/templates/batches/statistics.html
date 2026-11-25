@@ -30,6 +30,7 @@
       <div class="card-body">
         <h6 class="text-muted text-uppercase mb-2">Всего партий (история)</h6>
         <h2 class="display-6 fw-bold text-secondary mb-0">{{ total_batches_count|default:0 }}</h2>
+        <p class="mt-2 mb-0">Израсходовано {{ consumed_batches_count }} · списано {{ discarded_batches_count }}</p>
       </div>
     </div>
   </div>

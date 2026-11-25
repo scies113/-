@@ -1,6 +1,6 @@
 """Маршрутизация приложения preserves."""
 
-from django.urls import path
+from django.urls import path, re_path
 
 from . import views
 
@@ -10,4 +10,9 @@ urlpatterns = [
     path('', views.preserve_list, name='list'),
     path('<int:preserve_id>/', views.preserve_detail, name='detail'),
     path('products/', views.product_list, name='products'),
+    re_path(
+        r"^recipe/(?P<slug>[-\w]+)/$",
+        views.preserve_detail,
+        name="detail_by_slug",
+    ),
 ]

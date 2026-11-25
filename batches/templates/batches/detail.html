@@ -27,7 +27,7 @@
           <dd class="col-sm-8">
             <span class="fw-bold text-success">{{ batch.preserve.name|default:"Заготовка" }}</span>
             {% if batch.preserve_id %}
-              <a href="{% url 'preserves:detail' batch.preserve_id %}" class="small ms-2 text-decoration-none">
+              <a href="{{ batch.preserve.get_absolute_url }}" class="small ms-2 text-decoration-none">
                 (перейти к рецепту)
               </a>
             {% endif %}
@@ -43,10 +43,13 @@
             {{ batch.production_date|date:"d.m.Y"|default:batch.production_date }}
           </dd>
 
+          <dt class="col-sm-4 text-muted">Количество банок:</dt>
+          <dd class="col-sm-8">{{ batch.quantity }} шт.</dd>
+
           <dt class="col-sm-4 text-muted">Остаток банок:</dt>
           <dd class="col-sm-8">
-            <span class="fs-5 fw-bold {% if batch.quantity > 0 %}text-success{% else %}text-muted{% endif %}">
-              {{ batch.quantity }} шт.
+            <span class="fs-5 fw-bold {% if batch.available_quantity > 0 %}text-success{% else %}text-muted{% endif %}">
+              {{ batch.available_quantity }} шт.
             </span>
           </dd>
 

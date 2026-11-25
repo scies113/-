@@ -77,10 +77,12 @@ class Command(BaseCommand):
                 fields["production_date"] = date.fromisoformat(
                     fields["production_date"]
                 )
-                status = fields["is_consumed"]
+                status = fields.pop("is_consumed")
                 if status not in (0, 1):
                     raise ValueError(f"Недопустимый статус партии #{pk}")
-                fields["is_consumed"] = bool(status)
+                fields["status"] = (
+                    Batch.Status.CONSUMED if status else Batch.Status.ACTIVE
+                )
 
             obj, created = model.objects.get_or_create(pk=pk, defaults=fields)
             if not created and any(

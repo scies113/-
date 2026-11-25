@@ -24,10 +24,11 @@ class Casefold(Func):
 
 def search_names(queryset, term, *fields):
     """Ищет подстроку в одном или нескольких текстовых полях."""
+    term = term.casefold()
     aliases = {
         f"search_text_{i}": Casefold(field) for i, field in enumerate(fields)
     }
     condition = Q()
     for alias in aliases:
-        condition |= Q(**{f"{alias}__contains": term.casefold()})
+        condition |= Q(**{f"{alias}__contains": term})
     return queryset.alias(**aliases).filter(condition)

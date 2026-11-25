@@ -1,12 +1,17 @@
 """Настройки Django-проекта home_preserves."""
 
+from os import getenv
 from pathlib import Path
+import sys
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-home-preserves-frameworks-pr-secret-key'
 
 DEBUG = True
+ENABLE_DEBUG_TOOLBAR = (
+    DEBUG and getenv("DJANGO_DEBUG_TOOLBAR") == "1" and "test" not in sys.argv
+)
 
 ALLOWED_HOSTS = ['*']
 
@@ -32,6 +37,11 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+if ENABLE_DEBUG_TOOLBAR:
+    INSTALLED_APPS.append("debug_toolbar")
+    MIDDLEWARE.insert(1, "debug_toolbar.middleware.DebugToolbarMiddleware")
+    INTERNAL_IPS = ["127.0.0.1", "::1"]
+
 ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
@@ -45,6 +55,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'config.context_processors.site_brand',
             ],
         },
     },

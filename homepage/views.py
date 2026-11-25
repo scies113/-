@@ -10,14 +10,13 @@ from preserves.models import Preserve, Product
 
 def index(request: HttpRequest) -> HttpResponse:
     """Главная страница с количеством рецептов, сырья и банок."""
-    active_batches = Batch.objects.filter(is_consumed=False)
     context = {
         "preserves_count": Preserve.objects.count(),
         "products_count": Product.objects.count(),
-        "total_jars": active_batches.aggregate(
-            total=Sum("quantity", default=0)
+        "total_jars": Batch.objects.aggregate(
+            total=Sum("available_quantity", default=0)
         )["total"],
-        "largest_batches": active_batches.filter(quantity__gt=0)
+        "largest_batches": Batch.objects.available()
         .select_related("preserve").order_by("-quantity", "-pk")[:3],
     }
     return render(request, "homepage/index.html", context)

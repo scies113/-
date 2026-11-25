@@ -17,7 +17,7 @@ class PreserveInline(admin.TabularInline):
 
 class BatchInline(admin.TabularInline):
     model = Batch
-    fields = ("production_date", "quantity", "is_consumed")
+    fields = ("production_date", "quantity", "status")
     ordering = ("-production_date", "-pk")
     extra = 0
     show_change_link = True
@@ -40,4 +40,5 @@ class PreserveAdmin(PreserveProjectAdmin):
     search_fields = ("name", "product__name")
     ordering = ("name", "pk")
     autocomplete_fields = ("product",)
+    prepopulated_fields = {"slug": ("name",)}
     inlines = (BatchInline,)
