@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from django.contrib import admin
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.urls import include, path
@@ -22,7 +23,12 @@ def custom_page_not_found(
 
 handler404 = 'config.urls.custom_page_not_found'
 
+admin.site.site_header = 'Управление домашними заготовками'
+admin.site.site_title = 'Домашние заготовки'
+admin.site.index_title = 'Управление данными'
+
 urlpatterns = [
+    path('admin/', admin.site.urls),
     path('', include('homepage.urls')),
     path('preserves/', include('preserves.urls')),
     path('batches/', include('batches.urls')),

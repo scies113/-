@@ -8,6 +8,7 @@ class PreservesConfig(AppConfig):
 
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'preserves'
+    verbose_name = 'Сырьё и заготовки'
 
     def ready(self):
         from django.db.backends.signals import connection_created
